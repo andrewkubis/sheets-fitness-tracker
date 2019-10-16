@@ -14,21 +14,20 @@ function LogCard(props) {
 
   const toggleActive = () => {
     setActive(!active);
-    console.log(active);
   }
 
   return (
-    <div className="accordion_section">
-      <button className="accordion" onClick={toggleActive}>
-        <p className="accordion_title">{props.title}</p>
-        <Chevron className={active ? 'accordion_icon rotate' : "accordion_icon"} width={10} fill={"#777"} />
+    <div className="card-section">
+      <button className={active ? "card active" : "card"} onClick={toggleActive}>
+        <p className="card-title">{props.title}</p>
+        <Chevron className={active ? 'card-icon rotate' : "card-icon"} width={10} fill={"#777"} />
       </button>
       <div 
         ref={contentRef}
-        className="accordion_content">
+        className="card-content">
         <div 
           ref={contentRef}
-          className="accordion_text"
+          className="card-text"
         >
           {props.children}
         </div>

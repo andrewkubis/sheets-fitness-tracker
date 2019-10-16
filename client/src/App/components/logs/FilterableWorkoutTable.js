@@ -6,7 +6,7 @@ class FilterableWorkoutTable extends Component {
     render() {
         return (
             <div>
-                <SearchBar />
+                {/* <SearchBar /> */}
                 <WorkoutLogs />
             </div>
         );

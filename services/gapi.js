@@ -1,5 +1,7 @@
 var GAPI = (function() {
     'use strict';
+    const SPLIT_WORD = "data";
+    const uuid = require("uuid/v4");
     const {google} = require('googleapis');
     const keys = require('../keys/keys.json');
     const client = new google.auth.JWT(
@@ -100,53 +102,52 @@ var GAPI = (function() {
         return await gsapi.spreadsheets.get(query);
     }
     
-    async function gsRun() {
-    
-        console.log("GSRUN.");
-        const gsapi = google.sheets({version: 'v4', auth: client})    
-        const fitnessSheet = {
-            spreadsheetId: '1-8Pn3RysJRxDPzqMSiHd6aRQXJyPrkjbBzBOD-29vyY',
-            range: 'BB Decline Bench!A1:B2'
-        };    
-        return await gsapi.spreadsheets.get(fitnessSheet);
-    };
-
-    async function test() {
-        console.log("TEST START.");
-        const gsapi = google.sheets({version: 'v4', auth: client})    
-        const fitnessSheet = {
-            spreadsheetId: '1-8Pn3RysJRxDPzqMSiHd6aRQXJyPrkjbBzBOD-29vyY',
-            range: 'BB Decline Bench!A1:B'
-        };    
-        const res = await gsapi.spreadsheets.values.get(fitnessSheet);
-        console.log("TEST COMPLETED.");
-        return res;
-    }
-
     async function getSheetData(id, sheetName) {
         const gsapi = google.sheets({version: 'v4', auth: client})   
         const fitnessSheet = {
             spreadsheetId: id,
-            range: sheetName + '!A:E'
+            range: sheetName
         };
         return (await gsapi.spreadsheets.values.get(fitnessSheet)).data.values;
     }
 
     function shouldSplit(string) {
         let splt = string.split('!');
-        if (splt.length > 1 && splt[splt.length - 1] === "split") {
+        if (splt.length > 1 && splt[splt.length - 1] === SPLIT_WORD) {
             return true;
         } return false;
     } 
 
+    /*
+        Expects the following data
+        metadata: "some,comma,separated,metadata"
+        Cols: [name1, name2!`SPLIT_WORD`, name3!`SPLIT_WORD`, name4
+        data: ["a", "10,20,30", "3,2,1", "d"]
+
+        Returns data in following form:
+        {
+            date: "a",
+            sets: [
+                {name2: 10, name3: 3},
+                {name2: 20, name3: 2},
+                {name2: 30, name3: 1}
+            ]  
+            name1: ...,
+            name4: ...,
+            _uuid: random_uuid;
+        }
+    */
    function transformData(metaData, columns, rowsOfRows) {
         /* Get the columns that need to be split */
+        if (columns === undefined || rowsOfRows === undefined) {
+            return null;
+        }
         const splittableColumns = [];
         let final = [];
         for (let i = 0; i < columns.length; i++) {
             if (shouldSplit(columns[i])) {
                 splittableColumns.push(i);
-                columns[i] = columns[i].slice(0, -6);
+                columns[i] = columns[i].slice(0, -SPLIT_WORD.length - 1);
             }
         }
 
@@ -174,6 +175,7 @@ var GAPI = (function() {
                     rowResult[columns[i]] = row[i];
                 }
             }
+            rowResult["_id"] = uuid();
             final.push(rowResult);
         });
         return final;
@@ -187,18 +189,17 @@ var GAPI = (function() {
     }
 
     /*
-       {sheetName1: 
-            [[metadata]]
-            [[col1], [col2!data], [col3]]
-            [[a1], [a2a,a2b,a2c], [a3]]
-            [[b1], [b2a,b2b,b2c], [b3]]
+       {sheetName1: [
+            [[metadata]],
+            [[col1], [col2!data], [col3]],
+            [[a1], [a2a,a2b,a2c], [a3]],
+            [[b1], [b2a,b2b,b2c], [b3]],
             ....
        , sheetName2:
             ...
        }
     */
     async function getAllData(id) {
-        var d = Date.now();
         const sheetNames = await getSheetNames(id);
         let result = {};
         /* Make all requests and wait to resolve */
@@ -210,8 +211,55 @@ var GAPI = (function() {
         return result;
     }
 
+    /*
+        Returns data in following form:
+        {sheetName1:
+            {
+                date: "a",
+                sets: [
+                    {name2: 10, name3: 3},
+                    {name2: 20, name3: 2},
+                    {name2: 30, name3: 1}
+                ]  
+                name1: ...,
+                name4: ...,
+                _uuid: random_uuid;
+            }
+        }
+    */
+    async function getAllDataTransformed(id) {
+        let data = await getAllData(id);
+        let result = {};
+        for (let key in data) {
+            if (data[key] === undefined) return null;
+            const meta = data[key][0][0];
+            const columnNames = data[key][1];
+            // Slicing here is pretty inefficient
+            const entries = data[key].slice(2);
+            let curr = transformData(meta, columnNames, entries);
+            console.log(curr);
+            data[key] = curr;
+        }
+        return data;
+    }
+
+    async function addEntry(id, sheetName, dataMatrix) {
+        const gsapi = google.sheets({version: 'v4', auth: client})   
+        const fitnessSheet = {
+            spreadsheetId: id,
+            range: sheetName,
+            valueInputOption: "USER_ENTERED",
+            insertDataOption: "INSERT_ROWS",
+            resource: {
+                majorDimension: "ROWS",
+                values: dataMatrix
+            }
+        };
+        return (await gsapi.spreadsheets.values.append(fitnessSheet));
+    }
+
     return {
-        authorize, gsRun, getSheetNames, test, getSheetData, transformData
+        getSheetNames, getAllDataTransformed, addEntry
     }
 }())
 

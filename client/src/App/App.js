@@ -1,6 +1,6 @@
 import React from 'react';
 import { Route, Switch } from 'react-router-dom';
-// import logo from '../logo.svg';
+import logo from '../logo.svg';
 import './App.css';
 import Home from './pages/Home';
 import List from './pages/List';
@@ -8,7 +8,19 @@ import Logs from './pages/Logs';
 
 function App() {
   const App = () => (
-    <div>
+  <div>
+    <table className="title-bar">
+      <tbody>
+        <tr>
+          <td>
+            <img alt="app icon" width="50" src={logo}/>
+          </td>
+          <td>
+            <h2>Kubis Fitness</h2>
+          </td>
+        </tr>
+      </tbody>
+    </table>
       <Switch>
         <Route exact path='/' component={Home}/>
         <Route path='/list' component={List}/>
