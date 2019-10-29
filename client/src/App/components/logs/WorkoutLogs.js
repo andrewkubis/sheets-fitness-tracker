@@ -73,8 +73,8 @@ class WorkoutLogs extends Component {
       return result;
     }
 
-    const jsxLogs = logsToJsx(this.state.data[this.state.sheet]);
-    let filteredSheets = Object.keys(this.state.data).filter(
+    const jsxLogs = logsToJsx(this.props.data[this.state.sheet]);
+    let filteredSheets = Object.keys(this.props.data).filter(
       (sheet) => {
         if (this.state.search === null) return false;
         return sheet.toLowerCase().indexOf(this.state.search.toLowerCase()) !== -1
@@ -132,6 +132,12 @@ class WorkoutLogs extends Component {
       </div>
     );
   }
+}
+
+// Initialize empty data props
+WorkoutLogs.defaultProps = {
+  ...WorkoutLogs.defaultProps,
+  data: {}
 }
 
 const mapStateToProps = (state) => ({
