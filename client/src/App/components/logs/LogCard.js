@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import Chevron from './Chevron.js';
+import Chevron from '../Chevron.js';
 
 function LogCard(props) {
 
@@ -20,7 +20,8 @@ function LogCard(props) {
     <div className="card-section">
       <button className={active ? "card active" : "card"} onClick={toggleActive}>
         <p className="card-title">{props.title}</p>
-        <Chevron className={active ? 'card-icon rotate' : "card-icon"} width={10} fill={"#777"} />
+        <Chevron className={active ? 'card-icon rotate' : "card-icon"}
+          width={10} fill={"#777"} />
       </button>
       <div 
         ref={contentRef}

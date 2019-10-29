@@ -1,6 +1,9 @@
 import React, { Component } from 'react';
 import uuid from 'uuid/v4';
 import LogCard from './LogCard.js';
+import NewEntry from './NewEntry.js';
+import { connect } from 'react-redux';
+import { setSheet } from '../../actions';
 
 //Spinner imports
 import ClimbingBoxLoader from 'react-spinners/ClimbingBoxLoader';
@@ -11,7 +14,6 @@ const spinner = css`
   display: block;
   margin: 0 auto;
 `;
-
 
 class WorkoutLogs extends Component {
   constructor(props) {
@@ -34,11 +36,7 @@ class WorkoutLogs extends Component {
     fetch(url)
     .then(res => res.json())
     .then(data => {
-      const start = new Date().getTime();
-      let end = start;
-      while (end < start + 5000) {
-        end = new Date().getTime();
-      }
+      this.props.dispatch(setSheet(data));
       this.setState({ data: data, loading: false })
     })
   }
@@ -56,7 +54,7 @@ class WorkoutLogs extends Component {
     const logsToJsx = (logs) => {
       const result = [];
       if (logs == null) return result;
-      logs.forEach(log => {
+      logs.data.forEach(log => {
         const currentDay = [];
         log.sets.forEach((set) => {
           let string = "";
@@ -124,9 +122,20 @@ class WorkoutLogs extends Component {
           })}
         </div>
         <h3 style={{paddingLeft: "10px"}}>{this.state.sheet}</h3>
+        {this.state.sheet != null ? 
+          <NewEntry
+            descriptiveColumns={this.props.data[this.state.sheet].descriptiveColumns}
+            repetitionColumns={this.props.data[this.state.sheet].repetitionColumns}
+            /> : null
+        }
         {jsxLogs}
       </div>
     );
   }
 }
-export default WorkoutLogs;
+
+const mapStateToProps = (state) => ({
+  data: state.sheetReducer.data
+});
+
+export default connect(mapStateToProps)(WorkoutLogs);

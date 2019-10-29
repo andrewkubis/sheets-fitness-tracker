@@ -1,4 +1,6 @@
 import React, { Component } from 'react';
+import { useSelector, useDispatch, connect } from 'react-redux';
+import { setSheet } from '../actions';
 
 class List extends Component {
   // Initialize the state
@@ -18,7 +20,11 @@ class List extends Component {
   getList = () => {
     fetch('/getSheetNames')
     .then(res => res.json())
-    .then(list => this.setState({ list }))
+    .then(list => {
+      this.setState({ list });
+      console.log("Retrieved.");
+      useDispatch().dispatchEvent(setSheet(list));
+    })
   }
 
   render() {
@@ -47,6 +53,10 @@ class List extends Component {
       </div>
     );
   }
-}
+};
 
-export default List;
+const mapStateToProps = (state) => ({
+  data: state.data
+});
+
+export default connect(mapStateToProps)(List);

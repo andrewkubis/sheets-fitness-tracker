@@ -111,12 +111,16 @@ var GAPI = (function() {
         return (await gsapi.spreadsheets.values.get(fitnessSheet)).data.values;
     }
 
-    function shouldSplit(string) {
+    function isRepetition(string) {
         let splt = string.split('!');
         if (splt.length > 1 && splt[splt.length - 1] === SPLIT_WORD) {
             return true;
         } return false;
     } 
+
+    function cleanRepetitionName(string) {
+        return string.slice(0, -SPLIT_WORD.length - 1);
+    }
 
     /*
         Expects the following data
@@ -126,15 +130,22 @@ var GAPI = (function() {
 
         Returns data in following form:
         {
-            date: "a",
-            sets: [
-                {name2: 10, name3: 3},
-                {name2: 20, name3: 2},
-                {name2: 30, name3: 1}
+            exactRow: [name1, name2!data, name3!data, name4]
+            descriptiveColumns: [name1, name4]
+            repetitionColumns: [name2, name3]
+            data: [{
+                date: "a",
+                sets: [
+                    {name2: 10, name3: 3},
+                    {name2: 20, name3: 2},
+                    {name2: 30, name3: 1}
+                ]  
             ]  
-            name1: ...,
-            name4: ...,
-            _uuid: random_uuid;
+                ]  
+                name1: ...,
+                name4: ...,
+                _uuid: random_uuid;
+            }, ...]
         }
     */
    function transformData(metaData, columns, rowsOfRows) {
@@ -142,12 +153,21 @@ var GAPI = (function() {
         if (columns === undefined || rowsOfRows === undefined) {
             return null;
         }
-        const splittableColumns = [];
-        let final = [];
+
+        const repetitionColumns = columns.filter(item => isRepetition(item));
+        const repetitionColumnsClean = repetitionColumns.map(item => {
+            return cleanRepetitionName(item);
+        });
+        const descriptiveColumns = columns.filter(item => !repetitionColumns.includes(item));
+
+
+        const repetitionColumnIndices = [];
+        let data = [];
+        let final = {};
         for (let i = 0; i < columns.length; i++) {
-            if (shouldSplit(columns[i])) {
-                splittableColumns.push(i);
-                columns[i] = columns[i].slice(0, -SPLIT_WORD.length - 1);
+            if (isRepetition(columns[i])) {
+                repetitionColumnIndices.push(i);
+                columns[i] = cleanRepetitionName(columns[i]);
             }
         }
 
@@ -155,14 +175,14 @@ var GAPI = (function() {
             let rowResult = {};
             /*Begin adding splitted items*/
             let maxSplit = 0;
-            splittableColumns.forEach(index => 
+            repetitionColumnIndices.forEach(index => 
                 maxSplit = Math.max(row[index].split(',').length, maxSplit)
             );
 
             let splittedAttributes = [];
             for (let i = 0; i < maxSplit; i++) {
                 let item = {};                
-                splittableColumns.forEach(index => {
+                repetitionColumnIndices.forEach(index => {
                     item[columns[index]] = get(row[index].split(','), i);
                 });
                 splittedAttributes.push(item);
@@ -171,13 +191,17 @@ var GAPI = (function() {
 
              /*Begin adding rest of the non-split items*/
             for (let i = 0; i < columns.length; i++) {
-                if (!(splittableColumns.includes(i))) {
+                if (!(repetitionColumnIndices.includes(i))) {
                     rowResult[columns[i]] = row[i];
                 }
             }
             rowResult["_id"] = uuid();
-            final.push(rowResult);
+            data.push(rowResult);
         });
+        final.data = data;
+        final.exactRow = columns;
+        final.descriptiveColumns = descriptiveColumns;
+        final.repetitionColumns = repetitionColumnsClean;
         return final;
     }
 
@@ -215,15 +239,25 @@ var GAPI = (function() {
         Returns data in following form:
         {sheetName1:
             {
-                date: "a",
-                sets: [
-                    {name2: 10, name3: 3},
-                    {name2: 20, name3: 2},
-                    {name2: 30, name3: 1}
+                exactRow: [name1, name2!data, name3!data, name4]
+                descriptiveColumns: [name1, name4]
+                repetitionColumns: [name2, name3]
+                data: [
+                    {
+                        date: "a",
+                        sets: [
+                            {name2: 10, name3: 3},
+                            {name2: 20, name3: 2},
+                            {name2: 30, name3: 1}
+                        ]  
                 ]  
-                name1: ...,
-                name4: ...,
-                _uuid: random_uuid;
+                        ]  
+                        name1: ...,
+                        name4: ...,
+                        _uuid: random_uuid;
+                    },
+                    ...
+                ]
             }
         }
     */
@@ -237,7 +271,7 @@ var GAPI = (function() {
             // Slicing here is pretty inefficient
             const entries = data[key].slice(2);
             let curr = transformData(meta, columnNames, entries);
-            console.log(curr);
+            // console.log(curr);
             data[key] = curr;
         }
         return data;
