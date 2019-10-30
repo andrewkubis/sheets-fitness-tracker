@@ -1,6 +1,4 @@
 import React, { Component } from 'react';
-import { useSelector, useDispatch, connect } from 'react-redux';
-import { setSheet } from '../actions';
 
 class List extends Component {
   // Initialize the state
@@ -23,7 +21,6 @@ class List extends Component {
     .then(list => {
       this.setState({ list });
       console.log("Retrieved.");
-      useDispatch().dispatchEvent(setSheet(list));
     })
   }
 
@@ -55,8 +52,4 @@ class List extends Component {
   }
 };
 
-const mapStateToProps = (state) => ({
-  data: state.data
-});
-
-export default connect(mapStateToProps)(List);
+export default List;

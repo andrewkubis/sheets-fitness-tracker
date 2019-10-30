@@ -3,11 +3,13 @@ import uuid from 'uuid/v4';
 import LogCard from './LogCard.js';
 import NewEntry from './NewEntry.js';
 import { connect } from 'react-redux';
-import { setSheet } from '../../actions';
+import { setWorkbookData, setWorkbookId } from '../../actions';
 
 //Spinner imports
 import ClimbingBoxLoader from 'react-spinners/ClimbingBoxLoader';
 import { css } from '@emotion/core';
+
+const CURR_TEST_SHEET_ID = "1-8Pn3RysJRxDPzqMSiHd6aRQXJyPrkjbBzBOD-29vyY";
 
 const spinner = css`
   padding-top: 300px;
@@ -19,8 +21,6 @@ class WorkoutLogs extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      data: {},
-      id: "1-8Pn3RysJRxDPzqMSiHd6aRQXJyPrkjbBzBOD-29vyY",
       search: "",
       sheet: null,
       loading: true
@@ -28,17 +28,22 @@ class WorkoutLogs extends Component {
   }
 
   componentDidMount() {
+    this.getWorkbookId();
     this.getData();
   }
 
-  getData = () => {
-    const url = `/id/${encodeURIComponent(this.state.id)}/data`;
+  getData = (id) => {
+    const url = `/id/${encodeURIComponent(this.props.workbookId)}/data`;
     fetch(url)
     .then(res => res.json())
     .then(data => {
-      this.props.dispatch(setSheet(data));
-      this.setState({ data: data, loading: false })
+      this.setState({ loading: false });
+      this.props.dispatch(setWorkbookData(data));
     })
+  }
+
+  getWorkbookId = () => {
+    this.props.dispatch(setWorkbookId(CURR_TEST_SHEET_ID));
   }
 
   handleSelectedOptionWorkout(sheet) {
@@ -137,11 +142,16 @@ class WorkoutLogs extends Component {
 // Initialize empty data props
 WorkoutLogs.defaultProps = {
   ...WorkoutLogs.defaultProps,
+  workbookId: CURR_TEST_SHEET_ID,
   data: {}
 }
 
-const mapStateToProps = (state) => ({
-  data: state.sheetReducer.data
-});
+const mapStateToProps = (state) => {
+  const res = {
+    data: state.sheetReducer.data,
+    workbookId: state.sheetReducer.workbookId
+  };
+  return res
+};
 
 export default connect(mapStateToProps)(WorkoutLogs);
