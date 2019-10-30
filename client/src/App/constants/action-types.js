@@ -1,2 +1,3 @@
-export const SET_SHEET_DATA = 'SET_SHEET_DATA';
+export const SET_WORKBOOK_ID = 'SET_WORKBOOK_ID';
+export const SET_WORKBOOK_DATA = 'SET_WORKBOOK_DATA';
 export const ADD_SHEET_ITEM = 'ADD_SHEET_ITEM';
